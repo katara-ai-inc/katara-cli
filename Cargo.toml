@@ -1,0 +1,22 @@
+[package]
+name = "katara-cli"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bufbuild_protovalidate_anthropics_buffa = { version = "=0.5.2-20240717164558-a6c49f84cc0f.1", registry = "buf", default-features = false }
+bufbuild_protovalidate_anthropics_connect-rust = { version = "=0.4.2-20240717164558-a6c49f84cc0f.1", registry = "buf", default-features = false }
+clap = { version = "4.5.53", features = ["derive", "env"] }
+connectrpc = { version = "0.4.2", features = ["client", "client-tls"] }
+googleapis_googleapis_anthropics_buffa = { version = "=0.5.2-20240729201550-8bc2c51e08c4.1", registry = "buf", default-features = false }
+googleapis_googleapis_anthropics_connect-rust = { version = "=0.4.2-20240729201550-8bc2c51e08c4.1", registry = "buf", default-features = false }
+http = "1.3.1"
+katara-ai_katara_anthropics_buffa = { version = "0.5.2-20260504183043-7071d60099c2.1", registry = "buf" }
+katara-ai_katara_anthropics_connect-rust = { version = "0.4.2-20260504183043-7071d60099c2.1", registry = "buf" }
+rpassword = "7.5.2"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+tokio = { version = "1.48.0", features = ["rt-multi-thread"] }
+webpki-roots = "1.0.4"
+
+[dev-dependencies]
