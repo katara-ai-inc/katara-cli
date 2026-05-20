@@ -55,6 +55,25 @@ jobs:
         with:
           key: ${{ matrix.target }}
 
+      - name: Configure Buf Cargo registry credentials
+        shell: bash
+        env:
+          BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${BUF_TOKEN}" ]]; then
+            echo "::error::BUF_TOKEN secret is required to access the Buf Cargo registry"
+            exit 1
+          fi
+
+          mkdir -p ~/.cargo
+          cat > ~/.cargo/credentials.toml <<EOF
+          [registries.buf]
+          token = "${BUF_TOKEN}"
+          EOF
+          chmod 600 ~/.cargo/credentials.toml
+
       - name: Test
         run: cargo test --locked --target ${{ matrix.target }}
 
