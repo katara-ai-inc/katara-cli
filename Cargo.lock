@@ -89,9 +89,9 @@ checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
 name = "aws-lc-rs"
-version = "1.17.0"
+version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ec2f1fc3ec205783a5da9a7e6c1509cc69dedf09a1949e412c1e18469326d00"
+checksum = "048006790404103c488e6c5616b3e7e702a71292aadda08e8f7698a9e0d2eb53"
 dependencies = [
  "aws-lc-sys",
  "zeroize",
@@ -99,14 +99,15 @@ dependencies = [
 
 [[package]]
 name = "aws-lc-sys"
-version = "0.41.0"
+version = "0.47.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a2f9779ce85b93ab6170dd940ad0169b5766ff848247aff13bb788b832fe3f4"
+checksum = "8bfbe32ac36b3c428696ce315464181bc4029d689fd58e3f2a4e58c252242f52"
 dependencies = [
  "cc",
  "cmake",
  "dunce",
  "fs_extra",
+ "pkg-config",
 ]
 
 [[package]]
@@ -131,7 +132,7 @@ version = "0.7.1-20260825204119-511051f7f437.1"
 source = "sparse+https://buf.build/gen/cargo/public/"
 checksum = "ad00851537f409f22576ad10bc034f82964f1222ec907b442f59e7dd0d910fd3"
 dependencies = [
- "buffa",
+ "buffa 0.7.1",
  "buffa-descriptor",
  "buffa-types",
  "serde",
@@ -144,7 +145,7 @@ source = "sparse+https://buf.build/gen/cargo/public/"
 checksum = "d0e46533e1d912c6978e92b4e69ab209950fe768248ce10237587fdab6cfc9a1"
 dependencies = [
  "bufbuild_protovalidate_anthropics_buffa",
- "buffa",
+ "buffa 0.7.1",
  "buffa-types",
  "connectrpc",
  "futures",
@@ -170,12 +171,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "buffa"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f5f4b9af6f6e0cd7ce5d0bc30fd28e64e3582c76e25c374a3d37d21501702a2"
+dependencies = [
+ "bytes",
+ "foldhash",
+ "hashbrown 0.15.5",
+ "once_cell",
+ "rustversion",
+ "serde",
+ "serde_json",
+ "smoothutf8",
+ "thiserror",
+]
+
+[[package]]
 name = "buffa-descriptor"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f74c0bf128c53f22b0fc3c1e8e66969cd21375879061293fd4e5298e839099a9"
 dependencies = [
- "buffa",
+ "buffa 0.7.1",
  "serde",
  "serde_json",
 ]
@@ -186,7 +204,7 @@ version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5103995623b8e213abfa84b89feb98a0df84514607aafd52e6add9ca53c57d2e"
 dependencies = [
- "buffa",
+ "buffa 0.7.1",
  "bytes",
  "serde",
  "serde_json",
@@ -339,7 +357,7 @@ dependencies = [
  "async-compression",
  "async-trait",
  "base64",
- "buffa",
+ "buffa 0.7.1",
  "bytes",
  "flate2",
  "futures",
@@ -547,7 +565,7 @@ version = "0.7.1-20261015202054-8ac61b9e5023.1"
 source = "sparse+https://buf.build/gen/cargo/public/"
 checksum = "777c63e60b25227b61bd3970ede33f01436c45d1d61adf4999eb8da7ddcd8149"
 dependencies = [
- "buffa",
+ "buffa 0.7.1",
  "buffa-descriptor",
  "buffa-types",
  "serde",
@@ -559,7 +577,7 @@ version = "0.7.0-20261015202054-8ac61b9e5023.2"
 source = "sparse+https://buf.build/gen/cargo/public/"
 checksum = "1284d7eeccf9d7cc5acf919399d9cdd7ef3269a347466216d2acf77842f69863"
 dependencies = [
- "buffa",
+ "buffa 0.7.1",
  "buffa-types",
  "connectrpc",
  "futures",
@@ -754,7 +772,7 @@ source = "sparse+https://buf.build/gen/cargo/public/"
 checksum = "9579486cd1a11fe9480c0b61b10c455d7396b3ed46225c9888b2966eaf1e285e"
 dependencies = [
  "bufbuild_protovalidate_anthropics_buffa",
- "buffa",
+ "buffa 0.7.1",
  "buffa-descriptor",
  "buffa-types",
  "googleapis_googleapis_anthropics_buffa",
@@ -769,7 +787,7 @@ checksum = "27c6cc65a81eddfcd8b8ad34b6a994e1a9f92f0074fab731cdbb36e349a25ccd"
 dependencies = [
  "bufbuild_protovalidate_anthropics_buffa",
  "bufbuild_protovalidate_anthropics_connect-rust",
- "buffa",
+ "buffa 0.7.1",
  "buffa-types",
  "connectrpc",
  "futures",
@@ -785,7 +803,7 @@ version = "0.1.0"
 dependencies = [
  "bufbuild_protovalidate_anthropics_buffa",
  "bufbuild_protovalidate_anthropics_connect-rust",
- "buffa",
+ "buffa 0.8.0",
  "clap",
  "connectrpc",
  "googleapis_googleapis_anthropics_buffa",
@@ -950,9 +968,9 @@ dependencies = [
 
 [[package]]
 name = "rustls"
-version = "0.23.40"
+version = "0.23.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef86cd5876211988985292b91c96a8f2d298df24e75989a43a3c73f2d4d8168b"
+checksum = "48e13bd8c0e9365c43cfa5c9e8f9ad49d3c8444926c9aac819e0e4dc503c8fdf"
 dependencies = [
  "aws-lc-rs",
  "log",
@@ -974,9 +992,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-webpki"
-version = "0.103.13"
+version = "0.103.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61c429a8649f110dddef65e2a5ad240f747e85f7758a6bccc7e5777bd33f756e"
+checksum = "4443b1b6d39d7c663139942cc4558262562d2c84123bb6282ef177009ca8b281"
 dependencies = [
  "aws-lc-rs",
  "ring",
@@ -1052,6 +1070,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "703d5c7ef118737c72f1af64ad2f6f8c5e1921f818cdcb97b8fe6fc69bf66214"
 
 [[package]]
+name = "simdutf8"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3a9fe34e3e7a50316060351f37187a3f546bce95496156754b601a5fa71b76e"
+
+[[package]]
 name = "slab"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1071,6 +1095,15 @@ checksum = "9676b89cd56310a87b93dec47b11af744f34d5fc9f367b829474eec0a891350d"
 dependencies = [
  "borsh",
  "serde",
+]
+
+[[package]]
+name = "smoothutf8"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36358427d32ecdb1624616deed99eccfef0a167fe5bf40ddb51efe6980bc1ec8"
+dependencies = [
+ "simdutf8",
 ]
 
 [[package]]
