@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fs;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -10,17 +11,22 @@ use connectrpc::rustls;
 use katara_ai_katara_anthropics_buffa::katara::agent::v1alpha1::{
     Agent, AgentState, AgentType, GetAgentRequest, ListAgentsRequest,
 };
+use katara_ai_katara_anthropics_buffa::katara::content_uploader::v1alpha1::{
+    File as UploadFile, UploadDocumentRequest,
+};
 use katara_ai_katara_anthropics_buffa::katara::corpus::v1alpha1::{
     CreateDocumentRequest, Document, GetDocumentRequest, ListDocumentsRequest,
     UpdateDocumentRequest, document,
 };
 use katara_ai_katara_anthropics_connect_rust::katara::agent::v1alpha1::AgentServiceClient;
+use katara_ai_katara_anthropics_connect_rust::katara::content_uploader::v1alpha1::ContentUploaderServiceClient;
 use katara_ai_katara_anthropics_connect_rust::katara::corpus::v1alpha1::CorpusServiceClient;
 use serde::{Deserialize, Serialize};
 
 const DEFAULT_API_URL: &str = "https://api.katara.ai";
 const AUTH_FILE_ENV: &str = "KATARA_AUTH_FILE";
 const AUTH_KEY_NAME: &str = "default";
+const MAX_UPLOAD_BYTES: u64 = 20 * 1024 * 1024;
 
 type CliResult<T = ()> = Result<T, Box<dyn Error>>;
 
@@ -89,6 +95,8 @@ enum DocumentCommand {
     Create(DocumentCreateArgs),
     /// Update a document.
     Update(DocumentUpdateArgs),
+    /// Upload a local file through a Brain or Content Uploader agent.
+    Upload(DocumentUploadArgs),
 }
 
 #[derive(Args, Debug)]
@@ -196,6 +204,36 @@ enum ContentFormat {
 }
 
 #[derive(Args, Debug)]
+struct DocumentUploadArgs {
+    #[command(flatten)]
+    api: ApiArgs,
+    /// Organization ID that will own the document.
+    #[arg(long)]
+    org_id: String,
+    /// Brain or Content Uploader agent ID in this organization.
+    #[arg(long)]
+    agent_id: String,
+    /// Local file to upload (nonempty, at most 20 MiB).
+    #[arg(long)]
+    file: PathBuf,
+    /// MIME type override; otherwise detected by the API.
+    #[arg(long)]
+    content_type: Option<String>,
+    /// External source ID; defaults to the filename on the API.
+    #[arg(long)]
+    source_id: Option<String>,
+    /// BCP-47 language tag.
+    #[arg(long)]
+    language: Option<String>,
+    /// Tag ID to associate with the document. May be repeated.
+    #[arg(long)]
+    tag_id: Vec<String>,
+    /// Stable key for retrying the same Brain upload intent.
+    #[arg(long)]
+    idempotency_key: Option<String>,
+}
+
+#[derive(Args, Debug)]
 struct AgentArgs {
     #[command(subcommand)]
     command: AgentCommand,
@@ -248,22 +286,14 @@ enum AgentTypeArg {
     Qna,
     Discord,
     Github,
-    Taxonomy,
     Synchronizer,
     Telegram,
     Playground,
     ContentUploader,
     WebWidget,
     Slack,
-    SentimentClassifier,
-    PassiveVoiceClassifier,
-    FleschClassifier,
-    LanguageClassifier,
-    TopicClassifier,
     Notion,
-    GeneralLlmClassifier,
-    DiataxisClassifier,
-    ToneClassifier,
+    Brain,
     All,
 }
 
@@ -377,7 +407,68 @@ fn run_document(command: DocumentCommand) -> CliResult {
             print_document(&document);
             Ok(())
         }),
+        DocumentCommand::Upload(args) => {
+            let request = upload_request(&args)?;
+            block_on(async move {
+                let client = content_uploader_client(&args.api.api_url)?;
+                let response = client.upload_document(request).await?.into_owned();
+                if response.document_id.is_empty() {
+                    return Err("document ID not found in upload response".into());
+                }
+                println!("{}", response.document_id);
+                Ok(())
+            })
+        }
     }
+}
+
+fn upload_request(args: &DocumentUploadArgs) -> CliResult<UploadDocumentRequest> {
+    let filename = args
+        .file
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or("upload file must have a UTF-8 filename")?;
+    if filename.is_empty() || filename.len() > 255 || filename.contains(['/', '\\']) {
+        return Err("upload filename must be at most 255 bytes with no path separators".into());
+    }
+    if args
+        .content_type
+        .as_ref()
+        .is_some_and(|value| value.len() > 255)
+    {
+        return Err("content type must be at most 255 bytes".into());
+    }
+    if !fs::metadata(&args.file)?.is_file() {
+        return Err("upload path must be a regular file".into());
+    }
+    let file = fs::File::open(&args.file)?;
+    if !file.metadata()?.is_file() {
+        return Err("upload path must be a regular file".into());
+    }
+    let mut data = Vec::new();
+    file.take(MAX_UPLOAD_BYTES + 1).read_to_end(&mut data)?;
+    if data.is_empty() {
+        return Err("upload file cannot be empty".into());
+    }
+    if data.len() as u64 > MAX_UPLOAD_BYTES {
+        return Err("upload file must be at most 20 MiB".into());
+    }
+    Ok(UploadDocumentRequest {
+        org_id: args.org_id.clone(),
+        agent_id: args.agent_id.clone(),
+        source_id: args.source_id.clone().unwrap_or_default(),
+        language: args.language.clone(),
+        tag_ids: args.tag_id.clone(),
+        idempotency_key: args.idempotency_key.clone(),
+        file: UploadFile {
+            filename: filename.to_string(),
+            content_type: args.content_type.clone(),
+            data,
+            ..Default::default()
+        }
+        .into(),
+        ..Default::default()
+    })
 }
 
 fn run_agent(command: AgentCommand) -> CliResult {
@@ -495,10 +586,11 @@ fn read_auth_file_or_default(path: &Path) -> CliResult<AuthFile> {
     match read_auth_file(path) {
         Ok(auth_file) => Ok(auth_file),
         Err(error) => {
-            if let Some(io_error) = error.downcast_ref::<std::io::Error>() {
-                if io_error.kind() == std::io::ErrorKind::NotFound {
-                    return Ok(AuthFile::default());
-                }
+            if error
+                .downcast_ref::<std::io::Error>()
+                .is_some_and(|error| error.kind() == std::io::ErrorKind::NotFound)
+            {
+                return Ok(AuthFile::default());
             }
             Err(error)
         }
@@ -600,8 +692,9 @@ fn mask_api_key(api_key: &str) -> String {
 fn authenticated_config(api_url: &str) -> CliResult<ClientConfig> {
     let uri: http::Uri = api_url.parse()?;
     validate_api_uri(&uri)?;
-    let bearer = format!("Bearer {}", load_api_key()?);
-    Ok(ClientConfig::new(uri).default_header("authorization", bearer))
+    let mut bearer = http::HeaderValue::from_str(&format!("Bearer {}", load_api_key()?))?;
+    bearer.set_sensitive(true);
+    Ok(ClientConfig::new(uri).with_default_header("authorization", bearer))
 }
 
 fn corpus_client(api_url: &str) -> CliResult<CorpusServiceClient<HttpClient>> {
@@ -613,6 +706,13 @@ fn corpus_client(api_url: &str) -> CliResult<CorpusServiceClient<HttpClient>> {
 
 fn agent_client(api_url: &str) -> CliResult<AgentServiceClient<HttpClient>> {
     Ok(AgentServiceClient::new(
+        http_client(api_url)?,
+        authenticated_config(api_url)?,
+    ))
+}
+
+fn content_uploader_client(api_url: &str) -> CliResult<ContentUploaderServiceClient<HttpClient>> {
+    Ok(ContentUploaderServiceClient::new(
         http_client(api_url)?,
         authenticated_config(api_url)?,
     ))
@@ -716,22 +816,14 @@ impl AgentTypeArg {
             AgentTypeArg::Qna => AgentType::AGENT_TYPE_QNA,
             AgentTypeArg::Discord => AgentType::AGENT_TYPE_DISCORD,
             AgentTypeArg::Github => AgentType::AGENT_TYPE_GITHUB,
-            AgentTypeArg::Taxonomy => AgentType::AGENT_TYPE_TAXONOMY,
             AgentTypeArg::Synchronizer => AgentType::AGENT_TYPE_SYNCHRONIZER,
             AgentTypeArg::Telegram => AgentType::AGENT_TYPE_TELEGRAM,
             AgentTypeArg::Playground => AgentType::AGENT_TYPE_PLAYGROUND,
             AgentTypeArg::ContentUploader => AgentType::AGENT_TYPE_CONTENT_UPLOADER,
             AgentTypeArg::WebWidget => AgentType::AGENT_TYPE_WEB_WIDGET,
             AgentTypeArg::Slack => AgentType::AGENT_TYPE_SLACK,
-            AgentTypeArg::SentimentClassifier => AgentType::AGENT_TYPE_SENTIMENT_CLASSIFIER,
-            AgentTypeArg::PassiveVoiceClassifier => AgentType::AGENT_TYPE_PASSIVE_VOICE_CLASSIFIER,
-            AgentTypeArg::FleschClassifier => AgentType::AGENT_TYPE_FLESCH_CLASSIFIER,
-            AgentTypeArg::LanguageClassifier => AgentType::AGENT_TYPE_LANGUAGE_CLASSIFIER,
-            AgentTypeArg::TopicClassifier => AgentType::AGENT_TYPE_TOPIC_CLASSIFIER,
             AgentTypeArg::Notion => AgentType::AGENT_TYPE_NOTION,
-            AgentTypeArg::GeneralLlmClassifier => AgentType::AGENT_TYPE_GENERAL_LLM_CLASSIFIER,
-            AgentTypeArg::DiataxisClassifier => AgentType::AGENT_TYPE_DIATAXIS_CLASSIFIER,
-            AgentTypeArg::ToneClassifier => AgentType::AGENT_TYPE_TONE_CLASSIFIER,
+            AgentTypeArg::Brain => AgentType::AGENT_TYPE_BRAIN,
             AgentTypeArg::All => AgentType::AGENT_TYPE_ALL,
         }
     }
@@ -742,6 +834,7 @@ fn print_services() {
     println!("agent   AgentServiceClient  katara::agent::v1alpha1");
     println!("corpus  CorpusServiceClient katara::corpus::v1alpha1");
     println!("hello   HelloServiceClient  katara::hello::v1alpha1");
+    println!("upload  ContentUploaderServiceClient katara::content_uploader::v1alpha1");
 }
 
 #[cfg(test)]
@@ -790,6 +883,122 @@ mod tests {
     fn mask_api_key_only_exposes_last_four_characters() {
         assert_eq!(mask_api_key("katara_secret_1234"), "****1234");
         assert_eq!(mask_api_key("abc"), "****");
+    }
+
+    fn upload_args(path: PathBuf) -> DocumentUploadArgs {
+        DocumentUploadArgs {
+            api: ApiArgs {
+                api_url: DEFAULT_API_URL.to_string(),
+            },
+            org_id: "org".to_string(),
+            agent_id: "agent".to_string(),
+            file: path,
+            content_type: None,
+            source_id: None,
+            language: None,
+            tag_id: Vec::new(),
+            idempotency_key: None,
+        }
+    }
+
+    #[test]
+    fn upload_request_preserves_file_bytes_and_metadata() {
+        let path = unique_temp_auth_path().with_extension("md");
+        let bytes = b"# Upload\nUTF-8: \xc3\xa9\n\x00\xff";
+        fs::write(&path, bytes).unwrap();
+        let mut args = upload_args(path.clone());
+        args.content_type = Some("text/markdown".to_string());
+        args.source_id = Some("source".to_string());
+        args.language = Some("en".to_string());
+        args.tag_id = vec!["tag-1".to_string(), "tag-2".to_string()];
+        args.idempotency_key = Some("retry-key".to_string());
+        let request = upload_request(&args).unwrap();
+        assert_eq!(request.org_id, "org");
+        assert_eq!(request.agent_id, "agent");
+        assert_eq!(request.source_id, "source");
+        assert_eq!(request.language.as_deref(), Some("en"));
+        assert_eq!(request.tag_ids, args.tag_id);
+        assert_eq!(request.idempotency_key.as_deref(), Some("retry-key"));
+        let file = request.file.as_option().unwrap();
+        assert_eq!(file.filename, path.file_name().unwrap().to_str().unwrap());
+        assert_eq!(file.content_type.as_deref(), Some("text/markdown"));
+        assert_eq!(file.data, bytes);
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn upload_request_keeps_optional_metadata_absent() {
+        let path = unique_temp_auth_path();
+        fs::write(&path, "test").unwrap();
+        let request = upload_request(&upload_args(path.clone())).unwrap();
+        assert!(request.source_id.is_empty());
+        assert!(request.language.is_none());
+        assert!(request.idempotency_key.is_none());
+        assert!(request.file.as_option().unwrap().content_type.is_none());
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn upload_request_rejects_missing_empty_and_oversized_files() {
+        let path = unique_temp_auth_path();
+        let args = upload_args(path.clone());
+        assert!(upload_request(&args).is_err());
+        fs::write(&path, "").unwrap();
+        assert_eq!(
+            upload_request(&args).unwrap_err().to_string(),
+            "upload file cannot be empty"
+        );
+        let file = fs::OpenOptions::new().write(true).open(&path).unwrap();
+        file.set_len(MAX_UPLOAD_BYTES).unwrap();
+        assert_eq!(
+            upload_request(&args)
+                .unwrap()
+                .file
+                .as_option()
+                .unwrap()
+                .data
+                .len() as u64,
+            MAX_UPLOAD_BYTES
+        );
+        file.set_len(MAX_UPLOAD_BYTES + 1).unwrap();
+        assert_eq!(
+            upload_request(&args).unwrap_err().to_string(),
+            "upload file must be at most 20 MiB"
+        );
+        drop(file);
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn upload_request_rejects_directories_and_invalid_metadata() {
+        let path = unique_temp_auth_path();
+        fs::create_dir(&path).unwrap();
+        assert_eq!(
+            upload_request(&upload_args(path.clone()))
+                .unwrap_err()
+                .to_string(),
+            "upload path must be a regular file"
+        );
+        fs::remove_dir(&path).unwrap();
+        let mut args = upload_args(path);
+        args.content_type = Some("x".repeat(256));
+        assert_eq!(
+            upload_request(&args).unwrap_err().to_string(),
+            "content type must be at most 255 bytes"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn upload_request_rejects_backslashes_in_unix_filenames() {
+        // On Windows a backslash separates directories, rather than being part of the basename.
+        let args = upload_args(PathBuf::from("bad\\filename.txt"));
+        assert!(
+            upload_request(&args)
+                .unwrap_err()
+                .to_string()
+                .contains("no path separators")
+        );
     }
 
     #[test]
