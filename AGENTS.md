@@ -16,6 +16,7 @@ katara-cli/
 ├── Cargo.lock                 # committed lockfile; use locked Cargo commands
 ├── src/main.rs                # all CLI commands, clients, auth storage, unit tests
 ├── tests/e2e.rs               # integration tests that invoke the built binary
+├── scripts/release.py         # stdlib archive/checksum packaging and verification
 ├── .cargo/config.toml         # Buf Cargo registry required by dependencies
 ├── .github/workflows/release.yml
 │                                # tag-triggered build/release workflow
@@ -36,7 +37,7 @@ No `src/lib.rs`, workspace, `src/bin/`, examples, or benches. Keep root guidance
 | Agent API commands | `src/main.rs` | `run_agent`, `AgentTypeArg`, `AgentStateArg`, `print_agent`. |
 | Help/CLI contract tests | `tests/e2e.rs` | Uses `CARGO_BIN_EXE_katara-cli`; help text is tested behavior. |
 | Unit behavior tests | `src/main.rs` | `#[cfg(test)] mod tests` near the bottom. |
-| Build/release automation | `.github/workflows/release.yml` | Runs on `v*` tags; action SHAs are pinned. |
+| Build/release automation | `.github/workflows/release.yml`, `scripts/release.py` | Native matrix on relevant PRs and `v*` tags; publication is tag-push-only; action SHAs are pinned. |
 | Cargo registry setup | `.cargo/config.toml` | Required because `Cargo.toml` uses `registry = "buf"`. |
 
 ## COMMANDS
@@ -87,9 +88,10 @@ cargo build --locked --release --target <target-triple>
 ## RELEASE NOTES
 
 - Releases are created by pushing tags matching `v*`.
-- Workflow builds four artifacts: Linux x64, macOS x64, macOS arm64, Windows x64.
+- Workflow builds five artifacts: Linux x64/arm64, macOS x64/arm64, Windows x64. Keep the matrix and `scripts/release.py` target map aligned.
 - Archives are `.tar.gz` except Windows `.zip`.
 - Each archive gets a `.sha256` checksum.
+- Python packaging tests run with `python3 -m unittest discover -s scripts -p 'test_*.py' -v`; final publication verifies a complete matching archive/checksum set. PR builds never publish releases.
 - Only the release job has `contents: write`; keep build jobs read-only.
 - Third-party GitHub Actions are pinned to full commit SHAs. If upgrading, resolve and review new SHAs intentionally.
 
