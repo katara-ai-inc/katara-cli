@@ -214,6 +214,8 @@ fn cli_upload_uses_current_wire_contract_and_handles_responses() -> TestResult {
                     Err(error) => return Err(error.into()),
                 }
             };
+            // Accepted sockets can inherit the listener's nonblocking mode on BSD/macOS.
+            stream.set_nonblocking(false)?;
             stream.set_read_timeout(Some(std::time::Duration::from_secs(5)))?;
             let mut headers = Vec::new();
             while !headers.ends_with(b"\r\n\r\n") {
