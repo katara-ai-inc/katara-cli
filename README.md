@@ -6,6 +6,7 @@ Command-line client for the Katara API. Use it to authenticate with an API key, 
 
 - Store a Katara API key locally without printing it back to the terminal.
 - Fetch, list, create, and update corpus documents.
+- Upload local files through a Brain or Content Uploader agent.
 - Fetch and list agents, with filters for organization, ID, type, and state.
 - List generated Katara API service clients.
 - Build a single native binary with Cargo.
@@ -13,6 +14,9 @@ Command-line client for the Katara API. Use it to authenticate with an API key, 
 ## Installation
 
 Download a release archive for your platform from GitHub Releases, or build from source with Rust.
+
+Source builds require current stable Rust (edition 2024; the RPC SDK requires Rust 1.88 or newer).
+The checked-in Cargo configuration uses Buf's public registry; no Buf token is needed.
 
 ```bash
 git clone https://github.com/katara-ai-inc/katara-cli.git
@@ -53,6 +57,11 @@ Useful environment variables:
 - `KATARA_API_URL`: override the API endpoint, defaulting to `https://api.katara.ai`.
 - `KATARA_API_KEY`: provide an API key for `auth login`.
 - `KATARA_AUTH_FILE`: override the local auth JSON file path.
+
+`auth login --api-url` does not persist the endpoint. For staging, set
+`KATARA_API_URL=https://api.stage.katara.ai` for subsequent commands, or pass
+`--api-url https://api.stage.katara.ai` to each API command. Use a separate
+`KATARA_AUTH_FILE` when switching environments to avoid replacing your normal credential.
 
 ## Usage
 
@@ -97,6 +106,28 @@ katara-cli document update \
 
 Document content can be sent as `text`, `markdown`, or `json` with `--content-format`.
 
+Upload a local file (prints the resulting document ID):
+
+```bash
+katara-cli document upload \
+  --api-url https://api.stage.katara.ai \
+  --org-id <org-id> \
+  --agent-id <brain-or-content-uploader-agent-id> \
+  --file ./example.txt \
+  --content-type text/plain
+```
+
+Files must be nonempty and no larger than 20 MiB. Only the basename, not the local
+path, is sent to the API. `--content-type` is optional; the API detects it when omitted.
+The synchronous Content Uploader path supports text/Markdown; Brain uploads use the
+server's configured conversion providers. Availability and supported binary formats
+depend on the server. The CLI does not create agents or change permissions.
+
+Optional metadata: `--source-id`, `--language`, repeated `--tag-id`, and
+`--idempotency-key`. For a Brain upload retry, reuse the same key and unchanged
+file/metadata; do not reuse a key for a different intent. The API defaults the source
+ID to the filename if omitted. Verify the returned ID with `document get`.
+
 ### Agents
 
 List agents:
@@ -119,6 +150,9 @@ Fetch an agent by ID:
 ```bash
 katara-cli agent get --id <agent-id>
 ```
+
+Agent filters follow the current API, including `brain`. Retired taxonomy and
+classifier types are no longer accepted.
 
 ### Services
 
@@ -149,6 +183,22 @@ The live API integration test is ignored by default. To run it explicitly, provi
 ```bash
 KATARA_E2E_API_KEY=<api-key> cargo test --locked -- --ignored
 ```
+
+The upload test is opt-in, **writes a document**, and leaves it in the API for
+inspection. To run only that test against staging, provide the key through the
+environment (never commit it), plus an authorized organization and agent:
+
+```bash
+export KATARA_E2E_API_URL=https://api.stage.katara.ai
+export KATARA_E2E_ORG_ID=<org-id>
+export KATARA_E2E_AGENT_ID=<brain-or-content-uploader-agent-id>
+cargo test --locked --test e2e cli_file_upload_round_trips -- --ignored --exact --nocapture
+```
+
+It invokes the actual CLI for login, file upload, and document readback, using a
+temporary auth file that is removed afterward. Missing required variables fail the
+test rather than silently reporting a pass. Running all ignored tests requires these
+upload variables as well as the Hello service's permission.
 
 ## Releases
 

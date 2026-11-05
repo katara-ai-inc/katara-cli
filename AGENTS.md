@@ -32,6 +32,7 @@ No `src/lib.rs`, workspace, `src/bin/`, examples, or benches. Keep root guidance
 | Auth behavior | `src/main.rs` | `auth_file_path`, `store_api_key`, `load_api_key`, `write_secret_file`, `mask_api_key`. |
 | API client setup | `src/main.rs` | `authenticated_config`, `http_client`, `validate_api_uri`, service client helpers. |
 | Document API commands | `src/main.rs` | `run_document`, `document_content`, `print_document`. |
+| File uploads | `src/main.rs` | `DocumentUploadArgs`, `upload_request`, `content_uploader_client`; synchronous upload through a Brain or Content Uploader agent. |
 | Agent API commands | `src/main.rs` | `run_agent`, `AgentTypeArg`, `AgentStateArg`, `print_agent`. |
 | Help/CLI contract tests | `tests/e2e.rs` | Uses `CARGO_BIN_EXE_katara-cli`; help text is tested behavior. |
 | Unit behavior tests | `src/main.rs` | `#[cfg(test)] mod tests` near the bottom. |
@@ -60,23 +61,27 @@ cargo build --locked --release --target <target-triple>
 
 - Stable Rust only; `rust-toolchain.toml` pins `stable`.
 - Treat `Cargo.lock` as authoritative for reproducible builds.
-- Preserve `.cargo/config.toml`; Buf-generated dependencies will not resolve on clean runners without the `buf` registry.
+- Preserve `.cargo/config.toml`; use Buf's `/gen/cargo/public/` index for these public SDKs without a Buf token.
+- Keep generated Connect clients and message crates on compatible runtime versions and the same Katara schema commit; the newest Buffa plugin alone may not match the published Connect plugin.
 - API URL defaults to `https://api.katara.ai`.
 - Plain `http://` API URLs are only allowed for localhost/loopback.
 - API commands load the stored key and send it as a Bearer token.
 - Auth storage uses `KATARA_AUTH_FILE` when set; otherwise platform defaults apply.
 - Unix auth-file writes must remain `0600` and regular-file checked.
 - Output is tab-oriented and terse; keep CLI output scriptable.
+- `document upload` prints only the resulting document ID; file reads are bounded to the API's 20 MiB limit.
 - Help text is part of the compatibility surface because integration tests assert it.
 
 ## TESTS
 
 - Unit tests live in `src/main.rs` under `#[cfg(test)]`.
 - Integration tests live in `tests/e2e.rs` and execute the compiled `katara-cli` binary.
-- The network/API e2e test is ignored by default:
+- The Hello network/API e2e test is ignored by default:
   - requires `KATARA_E2E_API_KEY`
   - optionally uses `KATARA_E2E_API_URL`
   - default API URL is `https://api.katara.ai`
+- The upload round-trip test is also ignored by default and writes a document left in the API for inspection. It requires `KATARA_E2E_API_KEY`, `KATARA_E2E_API_URL`, `KATARA_E2E_ORG_ID`, and `KATARA_E2E_AGENT_ID`; it uses temporary isolated auth storage and verifies CLI document readback.
+- The default suite verifies upload protobuf bytes and metadata against a localhost server, including success, permission denial, and missing response IDs; it does not access a live API.
 - Help tests deliberately assert that auth does not expose `oauth`, `passwordless`, or `refresh` commands.
 
 ## RELEASE NOTES

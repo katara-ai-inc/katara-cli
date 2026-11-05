@@ -71,6 +71,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-trait"
+version = "0.1.92"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "82f6aeea286b8eb4dd3431a1be1b59d290ace00f5bfd8e2a159bc2a05e2c1667"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.9",
+]
+
+[[package]]
 name = "atomic-waker"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -105,21 +116,32 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
+name = "borsh"
+version = "1.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "553c5d846a6ba5150c65e3b1b8ec073bcf1abc20f9b7220de384a4443ea4e20a"
+dependencies = [
+ "bytes",
+ "cfg_aliases",
+]
+
+[[package]]
 name = "bufbuild_protovalidate_anthropics_buffa"
-version = "0.5.2-20240717164558-a6c49f84cc0f.1"
-source = "sparse+https://buf.build/gen/cargo/"
-checksum = "91dacddce87b6a2e17eb4be766d86f1618bf23124c759a13b5fa96e12c8eb4ed"
+version = "0.7.1-20260825204119-511051f7f437.1"
+source = "sparse+https://buf.build/gen/cargo/public/"
+checksum = "ad00851537f409f22576ad10bc034f82964f1222ec907b442f59e7dd0d910fd3"
 dependencies = [
  "buffa",
+ "buffa-descriptor",
  "buffa-types",
  "serde",
 ]
 
 [[package]]
 name = "bufbuild_protovalidate_anthropics_connect-rust"
-version = "0.4.2-20240717164558-a6c49f84cc0f.1"
-source = "sparse+https://buf.build/gen/cargo/"
-checksum = "1ef39c324f767d8599e58dcf5565f6426a1612c60580ef32a610cd5da78a2530"
+version = "0.7.0-20260825204119-511051f7f437.2"
+source = "sparse+https://buf.build/gen/cargo/public/"
+checksum = "d0e46533e1d912c6978e92b4e69ab209950fe768248ce10237587fdab6cfc9a1"
 dependencies = [
  "bufbuild_protovalidate_anthropics_buffa",
  "buffa",
@@ -131,24 +153,38 @@ dependencies = [
 
 [[package]]
 name = "buffa"
-version = "0.5.2"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7a22fed63b429c4928fd5ed18dcacd3a98d0df1f06cd7cf651b2bbf3dbf0500"
+checksum = "ec95898e2ef31d6266042f21c398fa5ff8334d14d6b2ac5fb38b55448d94f595"
 dependencies = [
  "base64",
  "bytes",
+ "compact_str",
+ "ecow",
  "hashbrown 0.15.5",
  "once_cell",
  "serde",
  "serde_json",
+ "smol_str",
  "thiserror",
 ]
 
 [[package]]
-name = "buffa-types"
-version = "0.5.2"
+name = "buffa-descriptor"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d406a92c781273688fa21eb2641b54b2cf4e6b52e4a1339fd12279b8220313c"
+checksum = "f74c0bf128c53f22b0fc3c1e8e66969cd21375879061293fd4e5298e839099a9"
+dependencies = [
+ "buffa",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "buffa-types"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5103995623b8e213abfa84b89feb98a0df84514607aafd52e6add9ca53c57d2e"
 dependencies = [
  "buffa",
  "bytes",
@@ -173,6 +209,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "castaway"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dec551ab6e7578819132c713a93c022a05d60159dc86e7a7050223577484c55a"
+dependencies = [
+ "rustversion",
+]
+
+[[package]]
 name = "cc"
 version = "1.2.62"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -189,6 +234,12 @@ name = "cfg-if"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
+
+[[package]]
+name = "cfg_aliases"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f079e83a288787bcd14a6aea84cee5c87a67c5a3e660c30f557a3d24761b3527"
 
 [[package]]
 name = "clap"
@@ -221,7 +272,7 @@ dependencies = [
  "heck",
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.117",
 ]
 
 [[package]]
@@ -246,6 +297,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d07550c9036bf2ae0c684c4297d503f838287c83c53686d05370d0e139ae570"
 
 [[package]]
+name = "compact_str"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9dfdd1c2274d9aa354115b09dc9a901d6c5576818cdf70d14cae2bdb47df00ab"
+dependencies = [
+ "castaway",
+ "cfg-if",
+ "itoa",
+ "rustversion",
+ "ryu",
+ "serde",
+ "static_assertions",
+]
+
+[[package]]
 name = "compression-codecs"
 version = "0.4.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -266,11 +332,12 @@ checksum = "cc14f565cf027a105f7a44ccf9e5b424348421a1d8952a8fc9d499d313107789"
 
 [[package]]
 name = "connectrpc"
-version = "0.4.2"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "55cb80f9eb09b593a96880eb1c2588ac6319b129519de8c672f9b8b4ffdeaece"
+checksum = "003fac88ace432fd8e6adbe13da8b20e90613b89e70c72186c505ad1bea307b2"
 dependencies = [
  "async-compression",
+ "async-trait",
  "base64",
  "buffa",
  "bytes",
@@ -312,6 +379,15 @@ name = "dunce"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
+
+[[package]]
+name = "ecow"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "78e4f79b296fbaab6ce2e22d52cb4c7f010fe0ebe7a32e34fa25885fd797bd02"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "equivalent"
@@ -410,7 +486,7 @@ checksum = "e835b70203e41293343137df5c0664546da5745f82ec9b84d40be8336958447b"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.117",
 ]
 
 [[package]]
@@ -467,20 +543,21 @@ dependencies = [
 
 [[package]]
 name = "googleapis_googleapis_anthropics_buffa"
-version = "0.5.2-20240729201550-8bc2c51e08c4.1"
-source = "sparse+https://buf.build/gen/cargo/"
-checksum = "5c514c3976b4ba9723739eb1b7e820339d6c6d393ce6ff951ae8fccddd4ae7c6"
+version = "0.7.1-20261015202054-8ac61b9e5023.1"
+source = "sparse+https://buf.build/gen/cargo/public/"
+checksum = "777c63e60b25227b61bd3970ede33f01436c45d1d61adf4999eb8da7ddcd8149"
 dependencies = [
  "buffa",
+ "buffa-descriptor",
  "buffa-types",
  "serde",
 ]
 
 [[package]]
 name = "googleapis_googleapis_anthropics_connect-rust"
-version = "0.4.2-20240729201550-8bc2c51e08c4.1"
-source = "sparse+https://buf.build/gen/cargo/"
-checksum = "ab699f5bdb6dfa06484132f61f18de91a737ad99ed3d57cb2d00d1ad98ce6e03"
+version = "0.7.0-20261015202054-8ac61b9e5023.2"
+source = "sparse+https://buf.build/gen/cargo/public/"
+checksum = "1284d7eeccf9d7cc5acf919399d9cdd7ef3269a347466216d2acf77842f69863"
 dependencies = [
  "buffa",
  "buffa-types",
@@ -672,12 +749,13 @@ dependencies = [
 
 [[package]]
 name = "katara-ai_katara_anthropics_buffa"
-version = "0.5.2-20260504183043-7071d60099c2.1"
-source = "sparse+https://buf.build/gen/cargo/"
-checksum = "3bd34eb98adbaf2ef7cbcc3517df545304d24585663b1ae8b0a916c64e470b81"
+version = "0.7.1-20261104142854-9b18c8482afc.1"
+source = "sparse+https://buf.build/gen/cargo/public/"
+checksum = "9579486cd1a11fe9480c0b61b10c455d7396b3ed46225c9888b2966eaf1e285e"
 dependencies = [
  "bufbuild_protovalidate_anthropics_buffa",
  "buffa",
+ "buffa-descriptor",
  "buffa-types",
  "googleapis_googleapis_anthropics_buffa",
  "serde",
@@ -685,9 +763,9 @@ dependencies = [
 
 [[package]]
 name = "katara-ai_katara_anthropics_connect-rust"
-version = "0.4.2-20260504183043-7071d60099c2.1"
-source = "sparse+https://buf.build/gen/cargo/"
-checksum = "eb66ccfbe81d111c1a721498d27e6b3dc41ba3653a0f3bbae8054db1b2244442"
+version = "0.7.0-20261104142854-9b18c8482afc.2"
+source = "sparse+https://buf.build/gen/cargo/public/"
+checksum = "27c6cc65a81eddfcd8b8ad34b6a994e1a9f92f0074fab731cdbb36e349a25ccd"
 dependencies = [
  "bufbuild_protovalidate_anthropics_buffa",
  "bufbuild_protovalidate_anthropics_connect-rust",
@@ -707,6 +785,7 @@ version = "0.1.0"
 dependencies = [
  "bufbuild_protovalidate_anthropics_buffa",
  "bufbuild_protovalidate_anthropics_connect-rust",
+ "buffa",
  "clap",
  "connectrpc",
  "googleapis_googleapis_anthropics_buffa",
@@ -795,7 +874,7 @@ checksum = "c96395f0a926bc13b1c17622aaddda1ecb55d49c8f1bf9777e4d877800a43f8b"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.117",
 ]
 
 [[package]]
@@ -912,6 +991,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
 
 [[package]]
+name = "ryu"
+version = "1.0.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f"
+
+[[package]]
 name = "serde"
 version = "1.0.228"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -938,7 +1023,7 @@ checksum = "d540f220d3187173da220f885ab66608367b6574e925011a9353e4badda91d79"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.117",
 ]
 
 [[package]]
@@ -979,6 +1064,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 
 [[package]]
+name = "smol_str"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9676b89cd56310a87b93dec47b11af744f34d5fc9f367b829474eec0a891350d"
+dependencies = [
+ "borsh",
+ "serde",
+]
+
+[[package]]
 name = "socket2"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -987,6 +1082,12 @@ dependencies = [
  "libc",
  "windows-sys 0.61.2",
 ]
+
+[[package]]
+name = "static_assertions"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "strsim"
@@ -1005,6 +1106,17 @@ name = "syn"
 version = "2.0.117"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e665b8803e7b1d2a727f4023456bbbbe74da67099c585258af0ad9c5013b9b99"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "unicode-ident",
+]
+
+[[package]]
+name = "syn"
+version = "3.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d78c8dee4c7bf0e14673097256fed6142ce9d3b85a408189d07482442145823b"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1034,7 +1146,7 @@ checksum = "ebc4ee7f67670e9b64d05fa4253e753e016c6c95ff35b89b7941d6b856dec1d5"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.117",
 ]
 
 [[package]]
@@ -1122,7 +1234,7 @@ checksum = "7490cfa5ec963746568740651ac6781f701c9c5ea257c58e057f3ba8cf69e8da"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.117",
 ]
 
 [[package]]
@@ -1224,7 +1336,7 @@ dependencies = [
  "bumpalo",
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.117",
  "wasm-bindgen-shared",
 ]
 
